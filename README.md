@@ -1,5 +1,6 @@
 # Fault-Tolerant Distributed Database System
 
+
 A distributed database system designed to remain available and consistent when individual nodes fail.
 
 ## Status
