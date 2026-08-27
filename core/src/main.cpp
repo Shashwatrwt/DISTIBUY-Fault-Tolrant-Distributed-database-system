@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <vector>
 
 enum class NodeState { Starting, Ready };
 
@@ -11,10 +12,15 @@ struct NodeConfig {
     bool is_valid() const {
         return node_id > 0 && !host.empty() && port > 0 && port <= 65535;
     }
+
+    std::string endpoint() const {
+        return host + ':' + std::to_string(port);
+    }
 };
 
 int main() {
     NodeConfig config{1, "127.0.0.1", 5000};
+    std::vector<NodeConfig> peers{{2, "127.0.0.1", 5001}};
     NodeState state = NodeState::Starting;
     if (!config.is_valid()) {
         std::cerr << "Invalid node configuration\n";
@@ -23,6 +29,7 @@ int main() {
     state = NodeState::Ready;
     const char* state_label = state == NodeState::Ready ? "ready" : "starting";
     std::cout << "Node " << config.node_id << " listening on "
-              << config.host << ':' << config.port << " (" << state_label << ")\n";
+              << config.endpoint() << " (" << state_label << ")\n";
+    std::cout << "Configured peers: " << peers.size() << '\n';
     return 0;
 }
