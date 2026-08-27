@@ -26,6 +26,14 @@ int main() {
         std::cerr << "Invalid node configuration\n";
         return 1;
     }
+    bool peers_valid = true;
+    for (const NodeConfig& peer : peers) {
+        peers_valid = peers_valid && peer.is_valid() && peer.node_id != config.node_id;
+    }
+    if (!peers_valid) {
+        std::cerr << "Invalid peer configuration\n";
+        return 1;
+    }
     state = NodeState::Ready;
     const char* state_label = state == NodeState::Ready ? "ready" : "starting";
     std::cout << "Node " << config.node_id << " listening on "
