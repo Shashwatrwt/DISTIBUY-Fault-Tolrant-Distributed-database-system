@@ -39,8 +39,12 @@ int main() {
     }
     state = NodeState::Ready;
     const char* state_label = state == NodeState::Ready ? "ready" : "starting";
+    const std::size_t cluster_size = peers.size() + 1;
+    const std::size_t quorum_size = cluster_size / 2 + 1;
     std::cout << "Node " << config.node_id << " listening on "
               << config.endpoint() << " (" << state_label << ")\n";
     std::cout << "Configured peers: " << peers.size() << '\n';
+    std::cout << "Cluster size: " << cluster_size
+              << ", quorum: " << quorum_size << '\n';
     return 0;
 }
