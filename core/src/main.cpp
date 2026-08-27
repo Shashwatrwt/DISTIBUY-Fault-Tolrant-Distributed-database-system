@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 enum class NodeState { Starting, Ready };
@@ -27,8 +28,10 @@ int main() {
         return 1;
     }
     bool peers_valid = true;
+    std::unordered_set<int> peer_ids;
     for (const NodeConfig& peer : peers) {
         peers_valid = peers_valid && peer.is_valid() && peer.node_id != config.node_id;
+        peers_valid = peers_valid && peer_ids.insert(peer.node_id).second;
     }
     if (!peers_valid) {
         std::cerr << "Invalid peer configuration\n";

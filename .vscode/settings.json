@@ -1,0 +1,6 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "g++": true,
+        ".\\core\\src\\main.exe": true
+    }
+}
