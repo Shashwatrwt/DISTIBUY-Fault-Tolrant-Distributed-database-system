@@ -5,6 +5,16 @@
 
 enum class NodeState { Starting, Ready };
 
+const char* state_name(NodeState state) {
+    switch (state) {
+        case NodeState::Starting:
+            return "starting";
+        case NodeState::Ready:
+            return "ready";
+    }
+    return "unknown";
+}
+
 struct NodeConfig {
     int node_id;
     std::string host;
@@ -47,11 +57,10 @@ int main() {
         return 1;
     }
     state = NodeState::Ready;
-    const char* state_label = state == NodeState::Ready ? "ready" : "starting";
     const std::size_t cluster_size = peers.size() + 1;
     const std::size_t quorum_size = cluster_size / 2 + 1;
     std::cout << "Node " << config.node_id << " listening on "
-              << config.endpoint() << " (" << state_label << ")\n";
+              << config.endpoint() << " (" << state_name(state) << ")\n";
     std::cout << "Configured peers: " << peers.size() << '\n';
     std::cout << "Cluster size: " << cluster_size
               << ", quorum: " << quorum_size << '\n';
