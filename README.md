@@ -5,7 +5,17 @@ A distributed database system designed to remain available and consistent when i
 
 ## Status
 
-This project is currently under development.
+This project is currently under development. The initial C++ node configuration
+is implemented in `core/src/main.cpp`.
+
+Implemented so far:
+
+- Node identity, host, and port configuration
+- Node configuration validation
+- Peer configuration with duplicate-ID and self-ID checks
+- Node lifecycle status reporting
+- Cluster size and majority quorum calculation
+- Peer lookup by node ID
 
 ## Planned Features
 
