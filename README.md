@@ -17,7 +17,15 @@ This project is currently under development.
 
 ## Getting Started
 
-Implementation and setup instructions will be added as the project develops.
+Compile and run the current C++ node with MinGW:
+
+```powershell
+g++ -Wall -Wextra core/src/main.cpp -o core/src/main.exe
+.\core\src\main.exe
+```
+
+The current example starts node 1 on `127.0.0.1:5000` with node 2 configured
+as its peer on `127.0.0.1:5001`.
 
 ## Contributing
 
