@@ -38,6 +38,18 @@ const NodeConfig* find_peer(const std::vector<NodeConfig>& peers, int node_id) {
     return nullptr;
 }
 
+bool peers_are_valid(const NodeConfig& local,
+                     const std::vector<NodeConfig>& peers) {
+    std::unordered_set<int> peer_ids;
+    for (const NodeConfig& peer : peers) {
+        if (!peer.is_valid() || peer.node_id == local.node_id ||
+            !peer_ids.insert(peer.node_id).second) {
+            return false;
+        }
+    }
+    return true;
+}
+
 int main() {
     NodeConfig config{1, "127.0.0.1", 5000};
     std::vector<NodeConfig> peers{{2, "127.0.0.1", 5001}};
