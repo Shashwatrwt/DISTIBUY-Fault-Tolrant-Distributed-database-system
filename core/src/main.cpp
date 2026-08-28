@@ -19,6 +19,15 @@ struct NodeConfig {
     }
 };
 
+const NodeConfig* find_peer(const std::vector<NodeConfig>& peers, int node_id) {
+    for (const NodeConfig& peer : peers) {
+        if (peer.node_id == node_id) {
+            return &peer;
+        }
+    }
+    return nullptr;
+}
+
 int main() {
     NodeConfig config{1, "127.0.0.1", 5000};
     std::vector<NodeConfig> peers{{2, "127.0.0.1", 5001}};
@@ -46,5 +55,8 @@ int main() {
     std::cout << "Configured peers: " << peers.size() << '\n';
     std::cout << "Cluster size: " << cluster_size
               << ", quorum: " << quorum_size << '\n';
+    if (const NodeConfig* peer = find_peer(peers, 2)) {
+        std::cout << "Peer 2 endpoint: " << peer->endpoint() << '\n';
+    }
     return 0;
 }
