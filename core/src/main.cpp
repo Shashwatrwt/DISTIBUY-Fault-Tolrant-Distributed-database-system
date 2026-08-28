@@ -58,12 +58,7 @@ int main() {
         std::cerr << "Invalid node configuration\n";
         return 1;
     }
-    std::unordered_set<int> peer_ids;
-    for (const NodeConfig& peer : peers) {
-        peers_valid = peers_valid && peer.is_valid() && peer.node_id != config.node_id;
-        peers_valid = peers_valid && peer_ids.insert(peer.node_id).second;
-    }
-    if (!peers_valid) {
+    if (!peers_are_valid(config, peers)) {
         std::cerr << "Invalid peer configuration\n";
         return 1;
     }
