@@ -57,6 +57,14 @@ struct Node {
     bool is_valid() const {
         return config.is_valid() && peers_are_valid(config, peers);
     }
+
+    std::vector<std::string> peer_endpoints() const {
+        std::vector<std::string> endpoints;
+        for (const auto& peer : peers) {
+            endpoints.push_back(peer.endpoint());
+        }
+        return endpoints;
+    }
 };
 
 int main() {
@@ -74,6 +82,9 @@ int main() {
     std::cout << "Configured peers: " << node.peers.size() << '\n';
     std::cout << "Cluster size: " << cluster_size
               << ", quorum: " << quorum_size << '\n';
+    for (const auto& endpoint : node.peer_endpoints()) {
+        std::cout << "  Peer endpoint: " << endpoint << '\n';
+    }
     if (const NodeConfig* peer = find_peer(node.peers, 2)) {
         std::cout << "Peer 2 endpoint: " << peer->endpoint() << '\n';
     }
