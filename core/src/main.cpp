@@ -60,26 +60,21 @@ struct Node {
 };
 
 int main() {
-    NodeConfig config{1, "127.0.0.1", 5000};
-    std::vector<NodeConfig> peers{{2, "127.0.0.1", 5001}};
+    Node node{{1, "127.0.0.1", 5000}, {{2, "127.0.0.1", 5001}}};
     NodeState state = NodeState::Starting;
-    if (!config.is_valid()) {
+    if (!node.is_valid()) {
         std::cerr << "Invalid node configuration\n";
         return 1;
     }
-    if (!peers_are_valid(config, peers)) {
-        std::cerr << "Invalid peer configuration\n";
-        return 1;
-    }
     state = NodeState::Ready;
-    const std::size_t cluster_size = peers.size() + 1;
+    const std::size_t cluster_size = node.peers.size() + 1;
     const std::size_t quorum_size = cluster_size / 2 + 1;
-    std::cout << "Node " << config.node_id << " listening on "
-              << config.endpoint() << " (" << state_name(state) << ")\n";
-    std::cout << "Configured peers: " << peers.size() << '\n';
+    std::cout << "Node " << node.config.node_id << " listening on "
+              << node.config.endpoint() << " (" << state_name(state) << ")\n";
+    std::cout << "Configured peers: " << node.peers.size() << '\n';
     std::cout << "Cluster size: " << cluster_size
               << ", quorum: " << quorum_size << '\n';
-    if (const NodeConfig* peer = find_peer(peers, 2)) {
+    if (const NodeConfig* peer = find_peer(node.peers, 2)) {
         std::cout << "Peer 2 endpoint: " << peer->endpoint() << '\n';
     }
     return 0;
