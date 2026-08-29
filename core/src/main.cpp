@@ -65,6 +65,13 @@ struct Node {
         }
         return endpoints;
     }
+
+    std::string summary() const {
+        std::string result = "Node " + std::to_string(config.node_id) +
+                             " (" + config.endpoint() + ") with " +
+                             std::to_string(peers.size()) + " peer(s)";
+        return result;
+    }
 };
 
 int main() {
@@ -77,11 +84,9 @@ int main() {
     state = NodeState::Ready;
     const std::size_t cluster_size = node.peers.size() + 1;
     const std::size_t quorum_size = cluster_size / 2 + 1;
-    std::cout << "Node " << node.config.node_id << " listening on "
-              << node.config.endpoint() << " (" << state_name(state) << ")\n";
-    std::cout << "Configured peers: " << node.peers.size() << '\n';
-    std::cout << "Cluster size: " << cluster_size
-              << ", quorum: " << quorum_size << '\n';
+    std::cout << node.summary() << '\n';
+    std::cout << "State: " << state_name(state) << '\n';
+    std::cout << "Cluster: " << cluster_size << " nodes, quorum: " << quorum_size << '\n';
     for (const auto& endpoint : node.peer_endpoints()) {
         std::cout << "  Peer endpoint: " << endpoint << '\n';
     }
