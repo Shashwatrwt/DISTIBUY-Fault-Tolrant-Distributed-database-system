@@ -50,6 +50,15 @@ bool peers_are_valid(const NodeConfig& local,
     return true;
 }
 
+struct Node {
+    NodeConfig config;
+    std::vector<NodeConfig> peers;
+
+    bool is_valid() const {
+        return config.is_valid() && peers_are_valid(config, peers);
+    }
+};
+
 int main() {
     NodeConfig config{1, "127.0.0.1", 5000};
     std::vector<NodeConfig> peers{{2, "127.0.0.1", 5001}};
