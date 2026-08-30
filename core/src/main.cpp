@@ -82,6 +82,11 @@ struct Store {
         data[key] = value;
     }
 
+    std::string get(const std::string& key) const {
+        auto it = data.find(key);
+        return (it != data.end()) ? it->second : "";
+    }
+
     std::size_t size() const {
         return data.size();
     }
@@ -90,6 +95,7 @@ struct Store {
 int main() {
     Node node{{1, "127.0.0.1", 5000}, {{2, "127.0.0.1", 5001}}};
     Store store;
+    store.set("db_version", "1.0");
     NodeState state = NodeState::Starting;
     if (!node.is_valid()) {
         std::cerr << "Invalid node configuration\n";
