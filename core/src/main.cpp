@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include <unordered_map>
 
 enum class NodeState { Starting, Ready };
 
@@ -74,8 +75,21 @@ struct Node {
     }
 };
 
+struct Store {
+    std::unordered_map<std::string, std::string> data;
+
+    void set(const std::string& key, const std::string& value) {
+        data[key] = value;
+    }
+
+    std::size_t size() const {
+        return data.size();
+    }
+};
+
 int main() {
     Node node{{1, "127.0.0.1", 5000}, {{2, "127.0.0.1", 5001}}};
+    Store store;
     NodeState state = NodeState::Starting;
     if (!node.is_valid()) {
         std::cerr << "Invalid node configuration\n";
@@ -87,6 +101,7 @@ int main() {
     std::cout << node.summary() << '\n';
     std::cout << "State: " << state_name(state) << '\n';
     std::cout << "Cluster: " << cluster_size << " nodes, quorum: " << quorum_size << '\n';
+    std::cout << "Store: " << store.size() << " items\n";
     for (const auto& endpoint : node.peer_endpoints()) {
         std::cout << "  Peer endpoint: " << endpoint << '\n';
     }
