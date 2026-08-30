@@ -96,6 +96,7 @@ int main() {
     Node node{{1, "127.0.0.1", 5000}, {{2, "127.0.0.1", 5001}}};
     Store store;
     store.set("db_version", "1.0");
+    store.set("replication_factor", "2");
     NodeState state = NodeState::Starting;
     if (!node.is_valid()) {
         std::cerr << "Invalid node configuration\n";
@@ -108,6 +109,8 @@ int main() {
     std::cout << "State: " << state_name(state) << '\n';
     std::cout << "Cluster: " << cluster_size << " nodes, quorum: " << quorum_size << '\n';
     std::cout << "Store: " << store.size() << " items\n";
+    std::cout << "  db_version: " << store.get("db_version") << '\n';
+    std::cout << "  replication_factor: " << store.get("replication_factor") << '\n';
     for (const auto& endpoint : node.peer_endpoints()) {
         std::cout << "  Peer endpoint: " << endpoint << '\n';
     }
