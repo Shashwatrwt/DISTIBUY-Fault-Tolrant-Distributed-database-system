@@ -137,5 +137,8 @@ int main() {
     for (const auto& endpoint : node.peer_endpoints()) {
         std::cout << "  Peer endpoint: " << endpoint << '\n';
     }
+    if (const NodeConfig* peer = find_peer(node.peers, 2)) {
+        std::cout << "Peer 2 endpoint: " << peer->endpoint() << '\n';
+    }
     return 0;
 }
