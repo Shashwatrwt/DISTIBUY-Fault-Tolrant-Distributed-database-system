@@ -103,6 +103,14 @@ struct ClusterMetadata {
     }
 };
 
+struct ReplicaMap {
+    std::unordered_map<NodeDomain, NodeDomain> replication;
+
+    void add(NodeDomain owner, NodeDomain replica) {
+        replication[owner] = replica;
+    }
+};
+
 struct Store {
     std::unordered_map<std::string, std::string> data;
 
@@ -150,6 +158,10 @@ int main() {
                {3, "127.0.0.1", 5003, NodeDomain::Orders}}};
     Store store;
     TransactionLog log;
+    ReplicaMap replicas;
+    replicas.add(NodeDomain::Users, NodeDomain::Products);
+    replicas.add(NodeDomain::Products, NodeDomain::Orders);
+    replicas.add(NodeDomain::Orders, NodeDomain::Users);
     store.set("db_version", "1.0");
     log.record("db_version", "1.0");
     store.set("replication_factor", "2");
@@ -176,5 +188,6 @@ int main() {
     if (const NodeConfig* products = metadata.find_by_domain(NodeDomain::Products)) {
         std::cout << "Products node: " << products->endpoint() << '\n';
     }
+    std::cout << "Users replica: " << domain_name(replicas.replication[NodeDomain::Users]) << '\n';
     return 0;
 }
