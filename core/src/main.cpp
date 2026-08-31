@@ -90,6 +90,19 @@ struct Node {
     }
 };
 
+struct ClusterMetadata {
+    std::vector<NodeConfig> nodes;
+
+    const NodeConfig* find_by_domain(NodeDomain domain) const {
+        for (const auto& candidate : nodes) {
+            if (candidate.domain == domain) {
+                return &candidate;
+            }
+        }
+        return nullptr;
+    }
+};
+
 struct Store {
     std::unordered_map<std::string, std::string> data;
 
@@ -126,7 +139,15 @@ struct TransactionLog {
 };
 
 int main() {
-    Node node{{1, "127.0.0.1", 5000}, {{2, "127.0.0.1", 5001}}};
+    ClusterMetadata metadata{{
+        {1, "127.0.0.1", 5001, NodeDomain::Users},
+        {2, "127.0.0.1", 5002, NodeDomain::Products},
+        {3, "127.0.0.1", 5003, NodeDomain::Orders}
+    }};
+
+    Node node{{1, "127.0.0.1", 5001, NodeDomain::Users},
+              {{2, "127.0.0.1", 5002, NodeDomain::Products},
+               {3, "127.0.0.1", 5003, NodeDomain::Orders}}};
     Store store;
     TransactionLog log;
     store.set("db_version", "1.0");
@@ -144,6 +165,7 @@ int main() {
     std::cout << node.summary() << '\n';
     std::cout << "State: " << state_name(state) << '\n';
     std::cout << "Cluster: " << cluster_size << " nodes, quorum: " << quorum_size << '\n';
+    std::cout << "Domain: " << domain_name(node.config.domain) << '\n';
     std::cout << "Store: " << store.size() << " items\n";
     std::cout << "  db_version: " << store.get("db_version") << '\n';
     std::cout << "  replication_factor: " << store.get("replication_factor") << '\n';
@@ -151,8 +173,8 @@ int main() {
     for (const auto& endpoint : node.peer_endpoints()) {
         std::cout << "  Peer endpoint: " << endpoint << '\n';
     }
-    if (const NodeConfig* peer = find_peer(node.peers, 2)) {
-        std::cout << "Peer 2 endpoint: " << peer->endpoint() << '\n';
+    if (const NodeConfig* products = metadata.find_by_domain(NodeDomain::Products)) {
+        std::cout << "Products node: " << products->endpoint() << '\n';
     }
     return 0;
 }
