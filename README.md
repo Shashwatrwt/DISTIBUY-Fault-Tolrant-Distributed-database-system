@@ -1,7 +1,6 @@
-# Fault-Tolerant Distributed Database System
 
+ShardCore is a fault-tolerant, sharded distributed database system built as a learning-first project for understanding distributed systems, database internals, replication, sharding, and cluster coordination in real code.
 
-A distributed database system designed to remain available and consistent when individual nodes fail.
 
 ## Status
 
