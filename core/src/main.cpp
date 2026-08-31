@@ -6,6 +6,7 @@
 #include <ctime>
 
 enum class NodeState { Starting, Ready };
+enum class NodeDomain { Users, Products, Orders };
 
 const char* state_name(NodeState state) {
     switch (state) {
@@ -17,10 +18,23 @@ const char* state_name(NodeState state) {
     return "unknown";
 }
 
+const char* domain_name(NodeDomain domain) {
+    switch (domain) {
+        case NodeDomain::Users:
+            return "Users";
+        case NodeDomain::Products:
+            return "Products";
+        case NodeDomain::Orders:
+            return "Orders";
+    }
+    return "Unknown";
+}
+
 struct NodeConfig {
     int node_id;
     std::string host;
     int port;
+    NodeDomain domain;
 
     bool is_valid() const {
         return node_id > 0 && !host.empty() && port > 0 && port <= 65535;
