@@ -150,6 +150,10 @@ bool can_failover(const ReplicaMap& replicas, NodeDomain domain) {
     return replicas.replication.find(domain) != replicas.replication.end();
 }
 
+bool node_healthy(const Node& node) {
+    return node.is_valid();
+}
+
 int main() {
     ClusterMetadata metadata{{
         {1, "127.0.0.1", 5001, NodeDomain::Users},
@@ -194,6 +198,9 @@ int main() {
     }
     if (can_failover(replicas, NodeDomain::Users)) {
         std::cout << "Failover route: " << domain_name(replicas.replication[NodeDomain::Users]) << '\n';
+    }
+    if (node_healthy(node)) {
+        std::cout << "Heartbeat: healthy\n";
     }
     return 0;
 }
