@@ -172,6 +172,11 @@ NodeDomain route_for(const ReplicaMap& replicas, NodeDomain request) {
     return (it != replicas.replication.end()) ? it->second : request;
 }
 
+bool owns_domain(const ClusterMetadata& metadata, NodeDomain domain, int node_id) {
+    const NodeConfig* candidate = metadata.find_by_domain(domain);
+    return candidate != nullptr && candidate->node_id == node_id;
+}
+
 int main() {
     ClusterMetadata metadata{{
         {1, "127.0.0.1", 5001, NodeDomain::Users},
@@ -223,5 +228,6 @@ int main() {
     }
     std::cout << "Coordinator route: " << domain_name(route_for(replicas, NodeDomain::Users)) << '\n';
     std::cout << "Transaction state: " << tx_state_name(tx) << '\n';
+    std::cout << "Domain ownership: " << (owns_domain(metadata, NodeDomain::Users, node.config.node_id) ? "owned" : "not-owned") << '\n';
     return 0;
 }
