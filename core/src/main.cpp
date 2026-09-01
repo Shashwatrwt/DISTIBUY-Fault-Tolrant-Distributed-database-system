@@ -154,6 +154,11 @@ bool node_healthy(const Node& node) {
     return node.is_valid();
 }
 
+NodeDomain route_for(const ReplicaMap& replicas, NodeDomain request) {
+    auto it = replicas.replication.find(request);
+    return (it != replicas.replication.end()) ? it->second : request;
+}
+
 int main() {
     ClusterMetadata metadata{{
         {1, "127.0.0.1", 5001, NodeDomain::Users},
@@ -202,5 +207,6 @@ int main() {
     if (node_healthy(node)) {
         std::cout << "Heartbeat: healthy\n";
     }
+    std::cout << "Coordinator route: " << domain_name(route_for(replicas, NodeDomain::Users)) << '\n';
     return 0;
 }
