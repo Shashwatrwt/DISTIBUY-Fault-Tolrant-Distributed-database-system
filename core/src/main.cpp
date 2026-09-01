@@ -146,6 +146,10 @@ struct TransactionLog {
     }
 };
 
+bool can_failover(const ReplicaMap& replicas, NodeDomain domain) {
+    return replicas.replication.find(domain) != replicas.replication.end();
+}
+
 int main() {
     ClusterMetadata metadata{{
         {1, "127.0.0.1", 5001, NodeDomain::Users},
@@ -188,6 +192,8 @@ int main() {
     if (const NodeConfig* products = metadata.find_by_domain(NodeDomain::Products)) {
         std::cout << "Products node: " << products->endpoint() << '\n';
     }
-    std::cout << "Users replica: " << domain_name(replicas.replication[NodeDomain::Users]) << '\n';
+    if (can_failover(replicas, NodeDomain::Users)) {
+        std::cout << "Failover route: " << domain_name(replicas.replication[NodeDomain::Users]) << '\n';
+    }
     return 0;
 }
