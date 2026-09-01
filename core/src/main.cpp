@@ -7,6 +7,7 @@
 
 enum class NodeState { Starting, Ready };
 enum class NodeDomain { Users, Products, Orders };
+enum class TxState { Begin, Commit, Abort };
 
 const char* state_name(NodeState state) {
     switch (state) {
@@ -28,6 +29,18 @@ const char* domain_name(NodeDomain domain) {
             return "Orders";
     }
     return "Unknown";
+}
+
+const char* tx_state_name(TxState state) {
+    switch (state) {
+        case TxState::Begin:
+            return "begin";
+        case TxState::Commit:
+            return "commit";
+        case TxState::Abort:
+            return "abort";
+    }
+    return "unknown";
 }
 
 struct NodeConfig {
@@ -180,6 +193,7 @@ int main() {
     store.set("replication_factor", "2");
     log.record("replication_factor", "2");
     NodeState state = NodeState::Starting;
+    TxState tx = TxState::Begin;
     if (!node.is_valid()) {
         std::cerr << "Invalid node configuration\n";
         return 1;
@@ -208,5 +222,6 @@ int main() {
         std::cout << "Heartbeat: healthy\n";
     }
     std::cout << "Coordinator route: " << domain_name(route_for(replicas, NodeDomain::Users)) << '\n';
+    std::cout << "Transaction state: " << tx_state_name(tx) << '\n';
     return 0;
 }
