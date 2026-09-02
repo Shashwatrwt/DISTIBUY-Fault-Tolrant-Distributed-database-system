@@ -177,6 +177,10 @@ bool owns_domain(const ClusterMetadata& metadata, NodeDomain domain, int node_id
     return candidate != nullptr && candidate->node_id == node_id;
 }
 
+bool quorum_available(std::size_t responsive_nodes, std::size_t quorum_size) {
+    return responsive_nodes >= quorum_size;
+}
+
 int main() {
     ClusterMetadata metadata{{
         {1, "127.0.0.1", 5001, NodeDomain::Users},
@@ -209,6 +213,7 @@ int main() {
     std::cout << node.summary() << '\n';
     std::cout << "State: " << state_name(state) << '\n';
     std::cout << "Cluster: " << cluster_size << " nodes, quorum: " << quorum_size << '\n';
+    std::cout << "Quorum status: " << (quorum_available(cluster_size, quorum_size) ? "available" : "unavailable") << '\n';
     std::cout << "Domain: " << domain_name(node.config.domain) << '\n';
     std::cout << "Store: " << store.size() << " items\n";
     std::cout << "  db_version: " << store.get("db_version") << '\n';
