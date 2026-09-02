@@ -136,6 +136,10 @@ struct Store {
         return (it != data.end()) ? it->second : "";
     }
 
+    bool contains(const std::string& key) const {
+        return data.find(key) != data.end();
+    }
+
     std::size_t size() const {
         return data.size();
     }
@@ -229,6 +233,7 @@ int main() {
     std::cout << "Store: " << store.size() << " items\n";
     std::cout << "  db_version: " << store.get("db_version") << '\n';
     std::cout << "  replication_factor: " << store.get("replication_factor") << '\n';
+    std::cout << "Store integrity: " << (store.contains("db_version") ? "valid" : "missing") << '\n';
     std::cout << "Transaction log: " << log.size() << " entries\n";
     std::cout << "Recovery log: " << (log_ready_for_recovery(log) ? "ready" : "empty") << '\n';
     for (const auto& endpoint : node.peer_endpoints()) {
