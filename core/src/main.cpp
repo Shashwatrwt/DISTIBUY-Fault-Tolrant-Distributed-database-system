@@ -210,10 +210,12 @@ int main() {
     state = NodeState::Ready;
     const std::size_t cluster_size = node.peers.size() + 1;
     const std::size_t quorum_size = cluster_size / 2 + 1;
+    const std::size_t nodes_after_failure = cluster_size - 1;
     std::cout << node.summary() << '\n';
     std::cout << "State: " << state_name(state) << '\n';
     std::cout << "Cluster: " << cluster_size << " nodes, quorum: " << quorum_size << '\n';
     std::cout << "Quorum status: " << (quorum_available(cluster_size, quorum_size) ? "available" : "unavailable") << '\n';
+    std::cout << "After one failure: " << (quorum_available(nodes_after_failure, quorum_size) ? "available" : "unavailable") << '\n';
     std::cout << "Domain: " << domain_name(node.config.domain) << '\n';
     std::cout << "Store: " << store.size() << " items\n";
     std::cout << "  db_version: " << store.get("db_version") << '\n';
