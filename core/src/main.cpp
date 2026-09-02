@@ -185,6 +185,10 @@ TxState finish_transaction(TxState state, bool quorum_ready) {
     return state == TxState::Begin && quorum_ready ? TxState::Commit : state;
 }
 
+bool log_ready_for_recovery(const TransactionLog& log) {
+    return log.size() > 0;
+}
+
 int main() {
     ClusterMetadata metadata{{
         {1, "127.0.0.1", 5001, NodeDomain::Users},
@@ -226,6 +230,7 @@ int main() {
     std::cout << "  db_version: " << store.get("db_version") << '\n';
     std::cout << "  replication_factor: " << store.get("replication_factor") << '\n';
     std::cout << "Transaction log: " << log.size() << " entries\n";
+    std::cout << "Recovery log: " << (log_ready_for_recovery(log) ? "ready" : "empty") << '\n';
     for (const auto& endpoint : node.peer_endpoints()) {
         std::cout << "  Peer endpoint: " << endpoint << '\n';
     }
