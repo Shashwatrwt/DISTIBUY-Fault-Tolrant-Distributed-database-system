@@ -181,6 +181,10 @@ bool quorum_available(std::size_t responsive_nodes, std::size_t quorum_size) {
     return responsive_nodes >= quorum_size;
 }
 
+TxState finish_transaction(TxState state, bool quorum_ready) {
+    return state == TxState::Begin && quorum_ready ? TxState::Commit : state;
+}
+
 int main() {
     ClusterMetadata metadata{{
         {1, "127.0.0.1", 5001, NodeDomain::Users},
@@ -211,6 +215,7 @@ int main() {
     const std::size_t cluster_size = node.peers.size() + 1;
     const std::size_t quorum_size = cluster_size / 2 + 1;
     const std::size_t nodes_after_failure = cluster_size - 1;
+    tx = finish_transaction(tx, quorum_available(cluster_size, quorum_size));
     std::cout << node.summary() << '\n';
     std::cout << "State: " << state_name(state) << '\n';
     std::cout << "Cluster: " << cluster_size << " nodes, quorum: " << quorum_size << '\n';
