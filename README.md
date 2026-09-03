@@ -4,9 +4,9 @@ A distributed, fault-tolerant e-commerce system using PostgreSQL as the storage 
 
 ## Current Status
 
-The repository currently contains a C++ foundation prototype in `core/src/main.cpp`. It demonstrates node metadata, peer validation, quorum logic, routing and failover modeling, transaction states, transaction-log checks, and an in-memory placeholder store.
+The repository currently contains only a C++ foundation prototype in `core/src/main.cpp`. It demonstrates node metadata, quorum logic, routing and failover modeling, transaction states, and an in-memory placeholder store.
 
-The PostgreSQL connections, three real PostgreSQL-backed nodes, logical replication, TCP communication, and the production Coordinator service have not been implemented yet. The prototype is being developed incrementally toward the MVP described below.
+PostgreSQL connections, logical replication, and the real Coordinator service have not been implemented yet. The prototype is being developed incrementally toward the MVP described below.
 
 ## The core problem you're solving
 
@@ -20,9 +20,7 @@ This works for a college demo with 10 users, but it has one fatal flaw: if that 
 
 The answer is to split data across multiple independent PostgreSQL-backed nodes and make copies of important data so if one node dies, another can immediately take over.
 
-## The three layers of the system
-
-The original two-layer model is expanded with an AI layer inserted between the application and database layers.
+## The two layers of the system
 
 ### 1. Application Layer
 
@@ -34,18 +32,7 @@ This is what users see and use:
 - view order history
 - admin dashboard to manage products, orders, and system health
 
-### 2. AI Layer
-
-This layer converts natural-language shopping requests into structured database queries.
-
-Examples:
-
-- "find me a wireless gaming mouse under ₹2000"
-- "show me laptops with good battery life"
-
-The AI is fully offline using Ollama, and it talks to the database only through the existing REST API and coordinator path. It is never a second entry point into the data.
-
-### 3. Distributed Database Layer
+### 2. Distributed Database Layer
 
 This is the actual engineering core of the project:
 
@@ -147,90 +134,6 @@ This prevents half-finished updates.
 
 This complete lifecycle is a major demo point: kill a node, watch failover, restart it, watch recovery.
 
-## AI Shopping Assistant (Stretch Goal - Phase 2)
-
-The AI shopping assistant is a Phase 2 stretch goal that will be started only after the core distributed database MVP is working. Keeping it separate avoids scope creep in an already ambitious operating-systems and database-systems project.
-
-### User flow
-
-The website can include an Ask AI input:
-
-```text
-"Find me a wireless gaming mouse under ₹2000 with good battery life"
-```
-
-The AI converts it into a structured request like:
-
-```python
-class ProductSearchQuery(BaseModel):
-    category: str | None = None
-    wireless: bool | None = None
-    max_price: float | None = None
-    min_battery_life: str | None = None
-    confidence: float = 1.0
-    clarifying_question: str | None = None
-```
-
-The AI does not touch the database directly. It calls the existing REST API and the coordinator path, preserving the architecture.
-
-### Ambiguity handling
-
-If the request is vague, the AI should ask a clarifying question instead of guessing. Example:
-
-```text
-"Do you have a budget in mind? Any brand preference?"
-```
-
-The frontend shows this as a follow-up chat bubble. Only after the request is clear does the AI service call the product search endpoint.
-
-### API pattern
-
-```json
-POST /api/products/search
-{
-  "category": "gaming mouse",
-  "wireless": true,
-  "max_price": 2000
-}
-```
-
-This is functionally the same as filtering products manually in the UI. The coordinator and nodes do not know AI was involved.
-
-### Why it fits the architecture
-
-- reuses the same product search flow
-- keeps the database as the source of truth
-- avoids creating a second bypass path into the data layer
-- works fully offline using local LLMs
-- does not create a new single point of failure
-
-## Ollama setup for local AI
-
-Recommended models:
-
-| RAM | Model | Notes |
-|---|---|---|
-| 8GB | llama3.2:3b or phi3:mini | fast and useful |
-| 16GB | llama3.1:8b | strong balance |
-| 16GB+ | qwen2.5:14b | stronger but slower |
-
-```bash
-ollama pull llama3.1:8b
-ollama run llama3.1:8b "Hello, respond with just OK"
-```
-
-```python
-import ollama
-
-response = ollama.chat(
-    model="llama3.1:8b",
-    messages=[{"role": "user", "content": prompt}],
-    format="json"
-)
-```
-
-A strict validation layer is required because local models may return malformed JSON.
-
 ## OS concepts reflected in the project
 
 | OS topic | Where it appears |
@@ -244,12 +147,11 @@ A strict validation layer is required because local models may return malformed 
 
 ## Tech stack
 
-- C++ for the Coordinator and distributed orchestration layer
-- TCP sockets for inter-process communication
-- Node.js/Express for the REST API layer
-- React for the frontend
-- Python + Pydantic + Ollama for the AI layer
-- PostgreSQL storage for each node instead of a hand-written storage engine
+- C++ (Coordinator)
+- TCP sockets
+- PostgreSQL (per-node storage)
+- Node.js/Express (REST API)
+- React (frontend)
 
 ## Why this project is valuable
 
@@ -261,8 +163,6 @@ This project touches the same skills backend and infrastructure interviews test:
 - transaction management
 - fault tolerance
 - failover design
-
-With the AI layer, it also adds applied AI engineering: structured output, ambiguity handling, and offline local LLM integration.
 
 ## MVP and Stretch Goals
 
@@ -284,14 +184,13 @@ The core MVP is:
 
 These are intentionally deferred until the MVP is complete and should be implemented only if time permits:
 
-- AI shopping assistant using Ollama and Pydantic
 - automatic leader election
 - dynamic sharding
 - multi-machine deployment
 
 ## Scope Boundaries
 
-The AI layer is not part of the MVP. It must call the existing REST API and Coordinator path rather than becoming a second entry point into the database. Complex recovery optimizations remain optional and can be considered after the MVP and stretch goals.
+Complex recovery optimizations remain optional and can be considered after the MVP and stretch goals.
 
 ## Repository structure
 
@@ -317,7 +216,7 @@ g++ -Wall -Wextra core/src/main.cpp -o core/src/main.exe
 .\core\src\main.exe
 ```
 
-The current prototype demonstrates local node metadata, peer validation, quorum logic, routing, failover modeling, transaction states, and an in-memory placeholder store. PostgreSQL connections, logical replication, and the Coordinator service are planned implementation work, not yet completed.
+The current prototype demonstrates local node metadata, quorum logic, routing, failover modeling, transaction states, and an in-memory placeholder store. PostgreSQL connections, logical replication, and the real Coordinator service are planned implementation work, not yet completed.
 
 ## Development roadmap
 
@@ -329,7 +228,6 @@ The current prototype demonstrates local node metadata, peer validation, quorum 
 6. add concurrency control, failure detection, failover, and recovery
 7. build the REST API and connect it to the Coordinator
 8. build the frontend and e-commerce flows
-9. integrate the AI shopping assistant as a Phase 2 stretch goal, only if time permits
 
 ## License
 
