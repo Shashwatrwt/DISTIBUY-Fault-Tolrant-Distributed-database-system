@@ -161,6 +161,10 @@ struct TransactionLog {
     std::size_t size() const {
         return entries.size();
     }
+
+    std::string last_key() const {
+        return entries.empty() ? "" : entries.back().key;
+    }
 };
 
 bool can_failover(const ReplicaMap& replicas, NodeDomain domain) {
@@ -236,6 +240,7 @@ int main() {
     std::cout << "Store integrity: " << (store.contains("db_version") ? "valid" : "missing") << '\n';
     std::cout << "Transaction log: " << log.size() << " entries\n";
     std::cout << "Recovery log: " << (log_ready_for_recovery(log) ? "ready" : "empty") << '\n';
+    std::cout << "Latest log key: " << log.last_key() << '\n';
     for (const auto& endpoint : node.peer_endpoints()) {
         std::cout << "  Peer endpoint: " << endpoint << '\n';
     }
