@@ -4,9 +4,9 @@ A distributed, fault-tolerant e-commerce system using PostgreSQL as the storage 
 
 ## Current Status
 
-The repository currently contains only a C++ foundation prototype in `core/src/main.cpp`. It demonstrates node metadata, quorum logic, routing and failover modeling, transaction states, and an in-memory placeholder store.
+The repository currently contains only a C++ foundation prototype in `core/src/main.cpp`. It demonstrates node metadata, peer validation, quorum arithmetic, a modeled replica route, transaction-state transitions, and an in-memory placeholder store and log.
 
-PostgreSQL connections, logical replication, and the real Coordinator service have not been implemented yet. The prototype is being developed incrementally toward the MVP described below.
+PostgreSQL connections, TCP communication, logical replication, locking, two-phase commit, heartbeat-based failure detection, recovery, the application API, and the frontend have not been implemented yet. The prototype is being developed incrementally toward the MVP described below.
 
 ## The core problem you're solving
 
@@ -55,7 +55,7 @@ A node is an independent process with its own PostgreSQL database that owns a sl
 | Node 2 | Products & Inventory |
 | Node 3 | Orders & Payments |
 
-All three can run on one laptop as separate PostgreSQL instances or databases on localhost ports such as 5433, 5434, and 5435.
+The prototype models these nodes with localhost endpoints on ports 5001, 5002, and 5003. Separate PostgreSQL instances or databases on ports such as 5433, 5434, and 5435 are part of the planned implementation.
 
 ### Partitioning
 
@@ -85,7 +85,7 @@ The coordinator:
 - sends heartbeat checks
 - triggers failover when a node dies
 
-This hides the complexity from the application layer.
+This hides the complexity from the application layer in the planned architecture. The current prototype only prints a modeled route; it does not accept requests or connect to nodes.
 
 ## Concurrency control
 
@@ -132,7 +132,7 @@ This prevents half-finished updates.
 - failover: traffic is redirected to the replica of a failed node
 - recovery: PostgreSQL replays its WAL when a node restarts; the Coordinator checks replication status, syncs missed updates, and only then returns the node to service
 
-This complete lifecycle is a major demo point: kill a node, watch failover, restart it, watch recovery.
+This complete lifecycle is a major planned demo point: kill a node, watch failover, restart it, watch recovery. The current prototype only reports quorum availability, a configured replica route, and whether its in-memory log is non-empty.
 
 ## OS concepts reflected in the project
 
@@ -216,7 +216,7 @@ g++ -Wall -Wextra core/src/main.cpp -o core/src/main.exe
 .\core\src\main.exe
 ```
 
-The current prototype demonstrates local node metadata, quorum logic, routing, failover modeling, transaction states, and an in-memory placeholder store. PostgreSQL connections, logical replication, and the real Coordinator service are planned implementation work, not yet completed.
+The current prototype demonstrates local node metadata, peer validation, quorum logic, a modeled route, transaction-state transitions, and an in-memory placeholder store and log. PostgreSQL connections, TCP communication, logical replication, locking, two-phase commit, failure detection, recovery, and the real Coordinator service are planned implementation work, not yet completed.
 
 ## Development roadmap
 

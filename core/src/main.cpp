@@ -239,7 +239,7 @@ int main() {
     std::cout << "  replication_factor: " << store.get("replication_factor") << '\n';
     std::cout << "Store integrity: " << (store.contains("db_version") ? "valid" : "missing") << '\n';
     std::cout << "Transaction log: " << log.size() << " entries\n";
-    std::cout << "Recovery log: " << (log_ready_for_recovery(log) ? "ready" : "empty") << '\n';
+    std::cout << "Recovery log model: " << (log_ready_for_recovery(log) ? "ready" : "empty") << '\n';
     std::cout << "Latest log key: " << log.last_key() << '\n';
     for (const auto& endpoint : node.peer_endpoints()) {
         std::cout << "  Peer endpoint: " << endpoint << '\n';
@@ -248,13 +248,13 @@ int main() {
         std::cout << "Products node: " << products->endpoint() << '\n';
     }
     if (can_failover(replicas, NodeDomain::Users)) {
-        std::cout << "Failover route: " << domain_name(replicas.replication[NodeDomain::Users]) << '\n';
+        std::cout << "Modeled failover route: " << domain_name(replicas.replication[NodeDomain::Users]) << '\n';
     }
     if (node_healthy(node)) {
-        std::cout << "Heartbeat: healthy\n";
+        std::cout << "Heartbeat model: healthy\n";
     }
-    std::cout << "Coordinator route: " << domain_name(route_for(replicas, NodeDomain::Users)) << '\n';
-    std::cout << "Transaction state: " << tx_state_name(tx) << '\n';
+    std::cout << "Modeled coordinator failover route: " << domain_name(route_for(replicas, NodeDomain::Users)) << '\n';
+    std::cout << "Transaction state model: " << tx_state_name(tx) << '\n';
     std::cout << "Domain ownership: " << (owns_domain(metadata, NodeDomain::Users, node.config.node_id) ? "owned" : "not-owned") << '\n';
     return 0;
 }
