@@ -2,6 +2,12 @@
 
 A distributed, fault-tolerant e-commerce system using PostgreSQL as the storage engine for each node. The partitioning, Coordinator, replication orchestration, distributed transactions, failure detection, and recovery logic are built by this project.
 
+## Current Status
+
+The repository currently contains a C++ foundation prototype in `core/src/main.cpp`. It demonstrates node metadata, peer validation, quorum logic, routing and failover modeling, transaction states, transaction-log checks, and an in-memory placeholder store.
+
+The PostgreSQL connections, three real PostgreSQL-backed nodes, logical replication, TCP communication, and the production Coordinator service have not been implemented yet. The prototype is being developed incrementally toward the MVP described below.
+
 ## The core problem you're solving
 
 A normal e-commerce app looks like this:
@@ -141,7 +147,9 @@ This prevents half-finished updates.
 
 This complete lifecycle is a major demo point: kill a node, watch failover, restart it, watch recovery.
 
-## AI Shopping Assistant
+## AI Shopping Assistant (Stretch Goal - Phase 2)
+
+The AI shopping assistant is a Phase 2 stretch goal that will be started only after the core distributed database MVP is working. Keeping it separate avoids scope creep in an already ambitious operating-systems and database-systems project.
 
 ### User flow
 
@@ -256,25 +264,34 @@ This project touches the same skills backend and infrastructure interviews test:
 
 With the AI layer, it also adds applied AI engineering: structured output, ambiguity handling, and offline local LLM integration.
 
-## What is intentionally not being built first
+## MVP and Stretch Goals
 
-The advanced items are optional and only if time permits:
+### MVP
 
+The core MVP is:
+
+- 3 PostgreSQL-backed nodes: Users, Products & Inventory, and Orders & Payments
+- Coordinator
+- TCP communication
+- partitioning by business domain
+- ring replication using PostgreSQL logical replication
+- distributed transactions using PostgreSQL 2PC
+- concurrency control using PostgreSQL locking, understood through 2PL
+- heartbeat-based failure detection and failover
+- recovery and reintegration of restarted nodes
+
+### Stretch Goals
+
+These are intentionally deferred until the MVP is complete and should be implemented only if time permits:
+
+- AI shopping assistant using Ollama and Pydantic
 - automatic leader election
 - dynamic sharding
 - multi-machine deployment
-- complex recovery optimizations
 
-The MVP is already serious and defensible:
+## Scope Boundaries
 
-- 3 nodes
-- coordinator
-- TCP communication
-- partitioning
-- replication
-- distributed transactions
-- concurrency control
-- failure detection and failover
+The AI layer is not part of the MVP. It must call the existing REST API and Coordinator path rather than becoming a second entry point into the database. Complex recovery optimizations remain optional and can be considered after the MVP and stretch goals.
 
 ## Repository structure
 
@@ -306,12 +323,13 @@ The current prototype demonstrates local node metadata, peer validation, quorum 
 
 1. define node and cluster topology
 2. implement sharding model
-3. add replication and commit behavior
-4. add failure detection and recovery
-5. build the API layer
-6. build the frontend and e-commerce flows
-7. integrate the AI shopping assistant
-8. connect the database logic to real user actions
+3. connect the Coordinator to PostgreSQL-backed nodes over TCP
+4. add ring replication and replication-status monitoring
+5. add distributed transactions with PostgreSQL 2PC
+6. add concurrency control, failure detection, failover, and recovery
+7. build the REST API and connect it to the Coordinator
+8. build the frontend and e-commerce flows
+9. integrate the AI shopping assistant as a Phase 2 stretch goal, only if time permits
 
 ## License
 
