@@ -1,6 +1,6 @@
-# OS + DBMS Project: Distributed, Fault-Tolerant E-Commerce Database System (with AI Shopping Assistant)
+# OS + DBMS Project: Distributed, Fault-Tolerant PostgreSQL E-Commerce System
 
-A distributed, fault-tolerant database system built from scratch in C++, not using MySQL/PostgreSQL, that powers a real e-commerce website and demonstrates how large-scale systems stay online, consistent, and fast even when individual servers crash.
+A distributed, fault-tolerant e-commerce system using PostgreSQL as the storage engine for each node. The partitioning, Coordinator, replication orchestration, distributed transactions, failure detection, and recovery logic are built by this project.
 
 ## The core problem you're solving
 
@@ -12,7 +12,7 @@ Users → One Server → One Database
 
 This works for a college demo with 10 users, but it has one fatal flaw: if that database crashes, the entire website goes down. This is a single point of failure.
 
-The answer is to avoid one database and instead split data across multiple independent servers or nodes, and make copies of important data so if one node dies, another can immediately take over.
+The answer is to split data across multiple independent PostgreSQL-backed nodes and make copies of important data so if one node dies, another can immediately take over.
 
 ## The three layers of the system
 
@@ -43,7 +43,7 @@ The AI is fully offline using Ollama, and it talks to the database only through 
 
 This is the actual engineering core of the project:
 
-- multiple database nodes running independently
+- multiple PostgreSQL-backed nodes running independently
 - data split across nodes
 - copies of data for safety
 - a coordinator routing every request to the correct place
@@ -54,7 +54,7 @@ This is the actual engineering core of the project:
 
 ### Nodes
 
-A node is an independent process that owns a slice of data. In the finalized design, each node owns a full business domain, not a numeric key range:
+A node is an independent process with its own PostgreSQL database that owns a slice of data. In the finalized design, each node owns a full business domain, not a numeric key range:
 
 | Node | Owns |
 |---|---|
@@ -62,7 +62,7 @@ A node is an independent process that owns a slice of data. In the finalized des
 | Node 2 | Products & Inventory |
 | Node 3 | Orders & Payments |
 
-All three can run on one laptop as separate processes on localhost ports such as 5001, 5002, and 5003.
+All three can run on one laptop as separate PostgreSQL instances or databases on localhost ports such as 5433, 5434, and 5435.
 
 ### Partitioning
 
@@ -70,7 +70,7 @@ Instead of one giant table spanning one machine, each table lives on one node. T
 
 ### Replication
 
-Partitioning alone is risky. If one node fails, data becomes unreachable. So each node's data is replicated to another node in a ring:
+Partitioning alone is risky. If one node fails, data becomes unreachable. PostgreSQL logical replication copies each node's data to another node in a ring:
 
 ```text
 Node 1 (Users) → replicated to → Node 2
@@ -137,7 +137,7 @@ This prevents half-finished updates.
 
 - detection: the coordinator pings nodes using heartbeats
 - failover: traffic is redirected to the replica of a failed node
-- recovery: when a node restarts, it replays its write-ahead log and syncs missed updates before returning to service
+- recovery: PostgreSQL replays its WAL when a node restarts; the Coordinator checks replication status, syncs missed updates, and only then returns the node to service
 
 This complete lifecycle is a major demo point: kill a node, watch failover, restart it, watch recovery.
 
@@ -232,16 +232,16 @@ A strict validation layer is required because local models may return malformed 
 | Synchronization | mutexes/locks prevent race conditions |
 | IPC | nodes and coordinator communicate via TCP sockets |
 | Deadlock | could arise when transactions wait for locks |
-| File management | each node stores data in its own files |
+| File management | each PostgreSQL node persists tables and WAL in its own data directory |
 
 ## Tech stack
 
-- C++ for the database engine
+- C++ for the Coordinator and distributed orchestration layer
 - TCP sockets for inter-process communication
 - Node.js/Express for the REST API layer
 - React for the frontend
 - Python + Pydantic + Ollama for the AI layer
-- file-based storage instead of MySQL/PostgreSQL
+- PostgreSQL storage for each node instead of a hand-written storage engine
 
 ## Why this project is valuable
 
@@ -293,14 +293,14 @@ ShardCore/
 
 ## Current local build and run
 
-The current C++ prototype can be built and run with MinGW:
+The current C++ foundation prototype can be built and run with MinGW:
 
 ```powershell
 g++ -Wall -Wextra core/src/main.cpp -o core/src/main.exe
 .\core\src\main.exe
 ```
 
-The current prototype demonstrates a local node and peer setup, quorum logic, server metadata, and an in-memory store.
+The current prototype demonstrates local node metadata, peer validation, quorum logic, routing, failover modeling, transaction states, and an in-memory placeholder store. PostgreSQL connections, logical replication, and the Coordinator service are planned implementation work, not yet completed.
 
 ## Development roadmap
 
