@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <ctime>
 #include <cstdlib>
+#include <unistd.h>
+#include <pqxx/pqxx>
 
 enum class NodeState { Starting, Ready };
 enum class NodeDomain { Users, Products, Orders };
@@ -80,13 +82,6 @@ bool peers_are_valid(const NodeConfig& local,
     return true;
 }
 
-// --- NEW: real liveness tracking, separate from static config validity ---
-// This models an actual heartbeat mechanism. In the current single-process
-// prototype there is no real network heartbeat yet, so we track "last seen"
-// as a timestamp that a future heartbeat thread/loop would update whenever
-// a peer responds. For now it is initialized to "now" at startup so a freshly
-// started node is considered alive, and a node counts as unhealthy once too
-// much time has passed since its last heartbeat.
 struct LivenessInfo {
     long last_heartbeat_time = 0;
     bool has_heartbeat = false;
@@ -105,7 +100,6 @@ bool is_alive(const LivenessInfo& liveness, long now) {
     }
     return (now - liveness.last_heartbeat_time) <= HEARTBEAT_TIMEOUT_SECONDS;
 }
-// --- END NEW ---
 
 struct Node {
     NodeConfig config;
@@ -152,26 +146,67 @@ struct ReplicaMap {
     }
 };
 
-struct Store {
-    std::unordered_map<std::string, std::string> data;
-
-    void set(const std::string& key, const std::string& value) {
-        data[key] = value;
+// --- NEW: PgStore replaces the old in-memory Store. It wraps a real ---
+// --- libpqxx connection to this node's own PostgreSQL cluster.       ---
+class PgStore {
+public:
+    // Builds the connection string and opens a real TCP connection to
+    // this node's Postgres instance (e.g. host=127.0.0.1 port=5433).
+    PgStore(const std::string& host, int port,
+            const std::string& user, const std::string& password,
+            const std::string& dbname = "postgres") {
+        std::string conn_str =
+            "host=" + host +
+            " port=" + std::to_string(port) +
+            " user=" + user +
+            " password=" + password +
+            " dbname=" + dbname;
+        conn_ = std::make_unique<pqxx::connection>(conn_str);
     }
 
-    std::string get(const std::string& key) const {
-        auto it = data.find(key);
-        return (it != data.end()) ? it->second : "";
+    bool is_open() const {
+        return conn_ && conn_->is_open();
     }
 
-    bool contains(const std::string& key) const {
-        return data.find(key) != data.end();
+    // Runs a single INSERT/UPDATE/DELETE statement inside its own
+    // transaction and commits it. Returns true on success.
+    bool execute(const std::string& sql) {
+        try {
+            pqxx::work txn(*conn_);
+            txn.exec(sql);
+            txn.commit();
+            return true;
+        } catch (const std::exception& e) {
+            std::cerr << "PgStore execute error: " << e.what() << '\n';
+            return false;
+        }
     }
 
-    std::size_t size() const {
-        return data.size();
+    // Runs a SELECT and returns the number of rows found. Prints each
+    // row's columns for now (useful for quick verification/demo output).
+    std::size_t query_and_print(const std::string& sql) {
+        try {
+            pqxx::work txn(*conn_);
+            pqxx::result r = txn.exec(sql);
+            for (const auto& row : r) {
+                std::string line;
+                for (const auto& field : row) {
+                    line += field.c_str();
+                    line += " | ";
+                }
+                std::cout << "  " << line << '\n';
+            }
+            return r.size();
+        } catch (const std::exception& e) {
+            std::cerr << "PgStore query error: " << e.what() << '\n';
+            return 0;
+        }
     }
+
+private:
+    std::unique_ptr<pqxx::connection> conn_;
 };
+// --- END NEW ---
 
 struct LogEntry {
     std::string key;
@@ -199,11 +234,9 @@ bool can_failover(const ReplicaMap& replicas, NodeDomain domain) {
     return replicas.replication.find(domain) != replicas.replication.end();
 }
 
-// --- CHANGED: node_healthy now checks real liveness, not just config validity ---
 bool node_healthy(const Node& node, const LivenessInfo& liveness, long now) {
     return node.is_valid() && is_alive(liveness, now);
 }
-// --- END CHANGED ---
 
 NodeDomain route_for(const ReplicaMap& replicas, NodeDomain request) {
     auto it = replicas.replication.find(request);
@@ -227,7 +260,6 @@ bool log_ready_for_recovery(const TransactionLog& log) {
     return log.size() > 0;
 }
 
-// --- NEW: build the full cluster topology once, then derive "this node" + its peers from an id ---
 ClusterMetadata build_cluster_metadata() {
     return ClusterMetadata{{
         {1, "127.0.0.1", 5433, NodeDomain::Users},
@@ -252,11 +284,24 @@ Node build_node(const ClusterMetadata& metadata, int node_id) {
     }
     return Node{local, peers};
 }
+
+// --- NEW: returns the table name each domain owns, and a sample row to insert. ---
+// This is just a small helper so main() can demo a real insert without
+// hardcoding domain-specific SQL inline.
+std::string table_for_domain(NodeDomain domain) {
+    switch (domain) {
+        case NodeDomain::Users:
+            return "users";
+        case NodeDomain::Products:
+            return "products";
+        case NodeDomain::Orders:
+            return "orders";
+    }
+    return "unknown";
+}
 // --- END NEW ---
 
 int main(int argc, char* argv[]) {
-    // --- NEW: node id now comes from the command line instead of being hardcoded ---
-    // Usage: ./main <node_id>   e.g. ./main 1   ./main 2   ./main 3
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " <node_id>\n";
         std::cerr << "  node_id must be 1 (Users), 2 (Products), or 3 (Orders)\n";
@@ -271,18 +316,12 @@ int main(int argc, char* argv[]) {
 
     ClusterMetadata metadata = build_cluster_metadata();
     Node node = build_node(metadata, node_id);
-    // --- END NEW ---
 
-    Store store;
     TransactionLog log;
     ReplicaMap replicas;
     replicas.add(NodeDomain::Users, NodeDomain::Products);
     replicas.add(NodeDomain::Products, NodeDomain::Orders);
     replicas.add(NodeDomain::Orders, NodeDomain::Users);
-    store.set("db_version", "1.0");
-    log.record("db_version", "1.0");
-    store.set("replication_factor", "2");
-    log.record("replication_factor", "2");
 
     NodeState state = NodeState::Starting;
     TxState tx = TxState::Begin;
@@ -293,11 +332,9 @@ int main(int argc, char* argv[]) {
     }
     state = NodeState::Ready;
 
-    // --- NEW: mark this node alive now that startup succeeded ---
     long now = (long)std::time(nullptr);
     LivenessInfo liveness;
     liveness.mark_alive(now);
-    // --- END NEW ---
 
     const std::size_t cluster_size = node.peers.size() + 1;
     const std::size_t quorum_size = cluster_size / 2 + 1;
@@ -310,11 +347,52 @@ int main(int argc, char* argv[]) {
     std::cout << "Quorum status: " << (quorum_available(cluster_size, quorum_size) ? "available" : "unavailable") << '\n';
     std::cout << "After one failure: " << (quorum_available(nodes_after_failure, quorum_size) ? "available" : "unavailable") << '\n';
     std::cout << "Domain: " << domain_name(node.config.domain) << '\n';
-    std::cout << "Store: " << store.size() << " items\n";
-    std::cout << "  db_version: " << store.get("db_version") << '\n';
-    std::cout << "  replication_factor: " << store.get("replication_factor") << '\n';
-    std::cout << "Store integrity: " << (store.contains("db_version") ? "valid" : "missing") << '\n';
-    std::cout << "Transaction log: " << log.size() << " entries\n";
+
+    // --- NEW: real Postgres connection replaces the old in-memory Store ---
+    std::cout << "\nConnecting to PostgreSQL at " << node.config.endpoint() << " ...\n";
+    try {
+        PgStore store(node.config.host, node.config.port, "postgres", "kvara");
+        if (store.is_open()) {
+            std::cout << "PostgreSQL connection: SUCCESS\n";
+
+            std::string table = table_for_domain(node.config.domain);
+            std::cout << "Domain table: " << table << '\n';
+
+            // Insert one demo row appropriate to this node's domain, then read it back.
+            if (node.config.domain == NodeDomain::Users) {
+                store.execute(
+                    "INSERT INTO users (name, email) VALUES "
+                    "('Demo User', 'demo" + std::to_string(now) + "@example.com') "
+                    "ON CONFLICT DO NOTHING;"
+                );
+            } else if (node.config.domain == NodeDomain::Products) {
+                store.execute(
+                    "INSERT INTO products (name, price, stock) VALUES "
+                    "('Demo Product', 999.00, 10);"
+                );
+            } else if (node.config.domain == NodeDomain::Orders) {
+                store.execute(
+                    "INSERT INTO orders (user_id, product_id, quantity, status) VALUES "
+                    "(1, 1, 1, 'pending');"
+                );
+            }
+
+            std::cout << "Rows in " << table << ":\n";
+            std::size_t row_count = store.query_and_print("SELECT * FROM " + table + ";");
+            std::cout << "Total rows: " << row_count << '\n';
+
+            log.record("pg_connection", "success");
+        } else {
+            std::cout << "PostgreSQL connection: FAILED (connection not open)\n";
+            log.record("pg_connection", "failed");
+        }
+    } catch (const std::exception& e) {
+        std::cout << "PostgreSQL connection: FAILED (" << e.what() << ")\n";
+        log.record("pg_connection", "failed");
+    }
+    // --- END NEW ---
+
+    std::cout << "\nTransaction log: " << log.size() << " entries\n";
     std::cout << "Recovery log model: " << (log_ready_for_recovery(log) ? "ready" : "empty") << '\n';
     std::cout << "Latest log key: " << log.last_key() << '\n';
 
@@ -328,13 +406,12 @@ int main(int argc, char* argv[]) {
         std::cout << "Modeled failover route: " << domain_name(replicas.replication[NodeDomain::Users]) << '\n';
     }
 
-    // --- CHANGED: heartbeat model now reflects real liveness check, not just config validity ---
     std::cout << "Heartbeat model: " << (node_healthy(node, liveness, now) ? "healthy" : "unhealthy") << '\n';
-    // --- END CHANGED ---
 
     std::cout << "Modeled coordinator failover route: " << domain_name(route_for(replicas, NodeDomain::Users)) << '\n';
     std::cout << "Transaction state model: " << tx_state_name(tx) << '\n';
     std::cout << "Domain ownership: " << (owns_domain(metadata, node.config.domain, node.config.node_id) ? "owned" : "not-owned") << '\n';
 
-    return 0;
+    std::cout.flush();
+    _exit(0);
 }
