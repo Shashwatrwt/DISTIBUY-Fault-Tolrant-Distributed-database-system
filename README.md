@@ -4,7 +4,7 @@ A distributed, fault-tolerant e-commerce system using PostgreSQL as the storage 
 
 ## Current Status
 
-The repository currently contains only a C++ foundation prototype in `core/src/main.cpp`. It demonstrates node metadata, peer validation, quorum arithmetic, a modeled replica route, transaction-state transitions, and an in-memory placeholder store and log.
+The repository currently contains only a C++ foundation prototype in `core/src/main.cpp`. It demonstrates node metadata, peer validation, quorum arithmetic, a modeled replica route, transaction-state transitions, command-line node selection, a liveness/heartbeat-timeout model not yet backed by real network heartbeats, and an in-memory placeholder store and log.
 
 PostgreSQL connections, TCP communication, logical replication, locking, two-phase commit, heartbeat-based failure detection, recovery, the application API, and the frontend have not been implemented yet. The prototype is being developed incrementally toward the MVP described below.
 
@@ -55,7 +55,7 @@ A node is an independent process with its own PostgreSQL database that owns a sl
 | Node 2 | Products & Inventory |
 | Node 3 | Orders & Payments |
 
-The prototype models these nodes with localhost endpoints on ports 5001, 5002, and 5003. Separate PostgreSQL instances or databases on ports such as 5433, 5434, and 5435 are part of the planned implementation.
+The prototype models these nodes with localhost endpoints on ports 5433, 5434, and 5435, matching the PostgreSQL clusters for node 1, node 2, and node 3 running locally.
 
 ### Partitioning
 
@@ -209,11 +209,13 @@ ShardCore/
 
 ## Current local build and run
 
-The current C++ foundation prototype can be built and run with MinGW:
+The current C++ foundation prototype can be built and run through WSL2/Ubuntu with `g++`. Pass a node ID of 1, 2, or 3 to start the corresponding node:
 
-```powershell
-g++ -Wall -Wextra core/src/main.cpp -o core/src/main.exe
-.\core\src\main.exe
+```bash
+g++ -Wall -Wextra core/src/main.cpp -o core/src/main
+./core/src/main 1   # Users node
+./core/src/main 2   # Products & Inventory node
+./core/src/main 3   # Orders & Payments node
 ```
 
 The current prototype demonstrates local node metadata, peer validation, quorum logic, a modeled route, transaction-state transitions, and an in-memory placeholder store and log. PostgreSQL connections, TCP communication, logical replication, locking, two-phase commit, failure detection, recovery, and the real Coordinator service are planned implementation work, not yet completed.
